@@ -44,7 +44,6 @@ import {
   QUOTE_AMOUNT,
   QUOTE_MINT,
   RPC_ENDPOINT,
-  RPC_WEBSOCKET_ENDPOINT,
   SNIPE_LIST_REFRESH_INTERVAL,
   USE_SNIPE_LIST,
   MIN_POOL_SIZE,
@@ -52,9 +51,7 @@ import {
   ONE_TOKEN_AT_A_TIME,
 } from './constants';
 
-const solanaConnection = new Connection(RPC_ENDPOINT, {
-  wsEndpoint: RPC_WEBSOCKET_ENDPOINT,
-});
+const solanaConnection = new Connection(RPC_ENDPOINT);
 
 export interface MinimalTokenAccountData {
   mint: PublicKey;
@@ -116,10 +113,10 @@ async function init(): Promise<void> {
   logger.info(`Snipe list: ${USE_SNIPE_LIST}`);
   logger.info(`Check mint renounced: ${CHECK_IF_MINT_IS_RENOUNCED}`);
   logger.info(
-    `Min pool size: ${quoteMinPoolSizeAmount.isZero() ? 'false' : quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
+    `Min pool size: ${quoteMinPoolSizeAmount?.isZero() ? 'false' : quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
   );
   logger.info(
-    `Max pool size: ${quoteMaxPoolSizeAmount.isZero() ? 'false' : quoteMaxPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
+    `Max pool size: ${quoteMaxPoolSizeAmount?.isZero() ? 'false' : quoteMaxPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
   );
   logger.info(`One token at a time: ${ONE_TOKEN_AT_A_TIME}`);
   logger.info(`Buy amount: ${quoteAmount.toFixed()} ${quoteToken.symbol}`);
@@ -168,7 +165,7 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
     return;
   }
 
-  if (!quoteMinPoolSizeAmount.isZero()) {
+  if (!quoteMinPoolSizeAmount?.isZero()) {
     const poolSize = new TokenAmount(quoteToken, poolState.swapQuoteInAmount, true);
     logger.info(`Processing pool: ${id.toString()} with ${poolSize.toFixed()} ${quoteToken.symbol} in liquidity`);
 
@@ -186,7 +183,7 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
     }
   }
 
-  if (!quoteMaxPoolSizeAmount.isZero()) {
+  if (!quoteMaxPoolSizeAmount?.isZero()) {
     const poolSize = new TokenAmount(quoteToken, poolState.swapQuoteInAmount, true);
 
     if (poolSize.gt(quoteMaxPoolSizeAmount)) {
