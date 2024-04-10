@@ -81,7 +81,7 @@ async function init(): Promise<void> {
 
   // get wallet
   wallet = Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY));
-  // logger.info(`Wallet Address: ${wallet.publicKey}`);
+  logger.info(`Wallet Address: ${wallet.publicKey}`);
 
   // get quote mint and amount
   switch (QUOTE_MINT) {
@@ -210,6 +210,7 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
   }
 
   await buy(id, poolState);
+  logger.info(`测试2`)
 }
 
 export async function checkMintable(vault: PublicKey): Promise<boolean | undefined> {
@@ -310,7 +311,7 @@ async function buy(accountId: PublicKey, accountData: LiquidityStateV4): Promise
           signature,
           url: `https://solscan.io/tx/${signature}?cluster=${NETWORK}`,
         },
-        `Confirmed buy tx`,
+        `购买成功！`,
       );
     } else {
       logger.debug(confirmation.value.err);
@@ -403,6 +404,7 @@ async function sell(accountId: PublicKey, mint: PublicKey, amount: BigNumberish)
       logger.info(`-------------------🔴------------------- `);
       logger.info(
         {
+          status:"售卖成功！",
           dex: `https://dexscreener.com/solana/${mint}?maker=${wallet.publicKey}`,
           ca:mint,
           signature,
@@ -436,7 +438,7 @@ function loadSnipeList() {
     .filter((a) => a);
 
   if (snipeList.length != count) {
-    logger.info(`Loaded snipe list: ${snipeList.length}`);
+    logger.info(`加载CA狙击清单: ${snipeList.length}`);
   }
 }
 
@@ -456,14 +458,15 @@ const runListener = async () => {
       const poolState = LIQUIDITY_STATE_LAYOUT_V4.decode(updatedAccountInfo.accountInfo.data);
       const poolOpenTime = parseInt(poolState.poolOpenTime.toString());
       const existing = existingLiquidityPools.has(key);
-
+      logger.info(`测试1`)
       if (poolOpenTime > runTimestamp && !existing) {
         existingLiquidityPools.add(key);
         const qvault = await solanaConnection.getBalance(poolState.quoteVault)
         const solAmount = qvault / Math.pow(10,9)
         logger.info(`监听到新的流动池，`+ poolState.baseMint.toBase58())
         logger.info(`池子大小`+ solAmount + 'sol')
-        const _ = processRaydiumPool(updatedAccountInfo.accountId, poolState);
+        await processRaydiumPool(updatedAccountInfo.accountId, poolState);
+        logger.info(`测试3`)
       }
     },
     COMMITMENT_LEVEL,
@@ -513,6 +516,7 @@ const runListener = async () => {
   );
 
   if (AUTO_SELL) {
+    logger.info(`每次都执行自动卖？`)
     const walletSubscriptionId = solanaConnection.onProgramAccountChange(
       TOKEN_PROGRAM_ID,
       async (updatedAccountInfo) => {
@@ -538,14 +542,14 @@ const runListener = async () => {
       ],
     );
 
-    // logger.info(`Listening for wallet changes: ${walletSubscriptionId}`);
+    logger.info(`Listening for wallet changes: ${walletSubscriptionId}`);
   }
 
-  // logger.info(`Listening for raydium changes: ${raydiumSubscriptionId}`);
-  // logger.info(`Listening for open book changes: ${openBookSubscriptionId}`);
+  logger.info(`Listening for raydium changes: ${raydiumSubscriptionId}`);
+  logger.info(`Listening for open book changes: ${openBookSubscriptionId}`);
 
   logger.info('------------------- 🚀 ---------------------');
-  logger.info('机器人启动完毕！');
+  logger.info('机器人正在启动！');
   logger.info('------------------- 🚀 ---------------------');
 
   if (USE_SNIPE_LIST) {
