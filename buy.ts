@@ -81,7 +81,7 @@ async function init(): Promise<void> {
 
   // get wallet
   wallet = Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY));
-  logger.info(`Wallet Address: ${wallet.publicKey}`);
+  // logger.info(`Wallet Address: ${wallet.publicKey}`);
 
   // get quote mint and amount
   switch (QUOTE_MINT) {
@@ -110,18 +110,18 @@ async function init(): Promise<void> {
     }
   }
 
-  logger.info(`Snipe list: ${USE_SNIPE_LIST}`);
-  logger.info(`Check mint renounced: ${CHECK_IF_MINT_IS_RENOUNCED}`);
-  logger.info(
-    `Min pool size: ${quoteMinPoolSizeAmount?.isZero() ? 'false' : quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
-  );
-  logger.info(
-    `Max pool size: ${quoteMaxPoolSizeAmount?.isZero() ? 'false' : quoteMaxPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
-  );
-  logger.info(`One token at a time: ${ONE_TOKEN_AT_A_TIME}`);
-  logger.info(`Buy amount: ${quoteAmount.toFixed()} ${quoteToken.symbol}`);
-  logger.info(`Auto sell: ${AUTO_SELL}`);
-  logger.info(`Sell delay: ${AUTO_SELL_DELAY === 0 ? 'false' : AUTO_SELL_DELAY}`);
+  // logger.info(`Snipe list: ${USE_SNIPE_LIST}`);
+  // logger.info(`Check mint renounced: ${CHECK_IF_MINT_IS_RENOUNCED}`);
+  // logger.info(
+  //   `Min pool size: ${quoteMinPoolSizeAmount?.isZero() ? 'false' : quoteMinPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
+  // );
+  // logger.info(
+  //   `Max pool size: ${quoteMaxPoolSizeAmount?.isZero() ? 'false' : quoteMaxPoolSizeAmount.toFixed()} ${quoteToken.symbol}`,
+  // );
+  // logger.info(`One token at a time: ${ONE_TOKEN_AT_A_TIME}`);
+  // logger.info(`Buy amount: ${quoteAmount.toFixed()} ${quoteToken.symbol}`);
+  // logger.info(`Auto sell: ${AUTO_SELL}`);
+  // logger.info(`Sell delay: ${AUTO_SELL_DELAY === 0 ? 'false' : AUTO_SELL_DELAY}`);
 
   // check existing wallet for associated token account of quote mint
   const tokenAccounts = await getTokenAccounts(solanaConnection, wallet.publicKey, COMMITMENT_LEVEL);
@@ -291,7 +291,7 @@ async function buy(accountId: PublicKey, accountData: LiquidityStateV4): Promise
     const signature = await solanaConnection.sendRawTransaction(transaction.serialize(), {
       preflightCommitment: COMMITMENT_LEVEL,
     });
-    logger.info({ mint: accountData.baseMint, signature }, `Sent buy tx`);
+    logger.info({ mint: accountData.baseMint, signature }, `发送购买信息`);
     processingToken = true;
 
     const confirmation = await solanaConnection.confirmTransaction(
@@ -314,12 +314,12 @@ async function buy(accountId: PublicKey, accountData: LiquidityStateV4): Promise
       );
     } else {
       logger.debug(confirmation.value.err);
-      logger.info({ mint: accountData.baseMint, signature }, `Error confirming buy tx`);
+      logger.info({ mint: accountData.baseMint, signature }, `确认购买失败！`);
     }
   } catch (e) {
     logger.debug(e);
     processingToken = false;
-    logger.error({ mint: accountData.baseMint }, `Failed to buy token`);
+    logger.error({ mint: accountData.baseMint }, `购买失败！`);
   }
 }
 
@@ -349,7 +349,7 @@ async function sell(accountId: PublicKey, mint: PublicKey, amount: BigNumberish)
           {
             mint: tokenAccount.mint,
           },
-          `Empty balance, can't sell`,
+          `没有余额，无法售卖`,
         );
         return;
       }
@@ -386,7 +386,7 @@ async function sell(accountId: PublicKey, mint: PublicKey, amount: BigNumberish)
       const signature = await solanaConnection.sendRawTransaction(transaction.serialize(), {
         preflightCommitment: COMMITMENT_LEVEL,
       });
-      logger.info({ mint, signature }, `Sent sell tx`);
+      logger.info({ mint, signature }, `发送售卖信息`);
       const confirmation = await solanaConnection.confirmTransaction(
         {
           signature,
@@ -397,14 +397,14 @@ async function sell(accountId: PublicKey, mint: PublicKey, amount: BigNumberish)
       );
       if (confirmation.value.err) {
         logger.debug(confirmation.value.err);
-        logger.info({ mint, signature }, `Error confirming sell tx`);
+        logger.info({ mint, signature }, `售卖确认失败`);
         continue;
       }
       logger.info(`-------------------🔴------------------- `);
       logger.info(
         {
           dex: `https://dexscreener.com/solana/${mint}?maker=${wallet.publicKey}`,
-          mint,
+          ca:mint,
           signature,
           url: `https://solscan.io/tx/${signature}?cluster=${NETWORK}`,
         },
@@ -417,7 +417,7 @@ async function sell(accountId: PublicKey, mint: PublicKey, amount: BigNumberish)
       await new Promise((resolve) => setTimeout(resolve, 100));
       retries++;
       logger.debug(e);
-      logger.error({ mint }, `Failed to sell token, retry: ${retries}/${MAX_SELL_RETRIES}`);
+      logger.error({ mint }, `售卖失败, 重试: ${retries}/${MAX_SELL_RETRIES}次`);
     }
   } while (!sold && retries < MAX_SELL_RETRIES);
   processingToken = false;
@@ -442,7 +442,7 @@ function loadSnipeList() {
 
 function shouldBuy(key: string): boolean {
   logger.info(`-------------------🤖🔧------------------- `);
-  logger.info(`Processing token: ${processingToken}`)
+  logger.info(`获取CA状态: ${processingToken}`)
   return USE_SNIPE_LIST ? snipeList.includes(key) : ONE_TOKEN_AT_A_TIME ? !processingToken : true
 }
 
@@ -459,6 +459,10 @@ const runListener = async () => {
 
       if (poolOpenTime > runTimestamp && !existing) {
         existingLiquidityPools.add(key);
+        const qvault = await solanaConnection.getBalance(poolState.quoteVault)
+        const solAmount = qvault / Math.pow(10,9)
+        logger.info(`监听到新的流动池，`+ poolState.baseMint.toBase58())
+        logger.info(`池子大小`+ solAmount + 'sol')
         const _ = processRaydiumPool(updatedAccountInfo.accountId, poolState);
       }
     },
@@ -534,14 +538,14 @@ const runListener = async () => {
       ],
     );
 
-    logger.info(`Listening for wallet changes: ${walletSubscriptionId}`);
+    // logger.info(`Listening for wallet changes: ${walletSubscriptionId}`);
   }
 
-  logger.info(`Listening for raydium changes: ${raydiumSubscriptionId}`);
-  logger.info(`Listening for open book changes: ${openBookSubscriptionId}`);
+  // logger.info(`Listening for raydium changes: ${raydiumSubscriptionId}`);
+  // logger.info(`Listening for open book changes: ${openBookSubscriptionId}`);
 
   logger.info('------------------- 🚀 ---------------------');
-  logger.info('Bot is running! Press CTRL + C to stop it.');
+  logger.info('机器人启动完毕！');
   logger.info('------------------- 🚀 ---------------------');
 
   if (USE_SNIPE_LIST) {
