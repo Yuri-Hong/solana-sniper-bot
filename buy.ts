@@ -210,7 +210,6 @@ export async function processRaydiumPool(id: PublicKey, poolState: LiquidityStat
   }
 
   await buy(id, poolState);
-  logger.info(`测试2`)
 }
 
 export async function checkMintable(vault: PublicKey): Promise<boolean | undefined> {
@@ -458,7 +457,6 @@ const runListener = async () => {
       const poolState = LIQUIDITY_STATE_LAYOUT_V4.decode(updatedAccountInfo.accountInfo.data);
       const poolOpenTime = parseInt(poolState.poolOpenTime.toString());
       const existing = existingLiquidityPools.has(key);
-      logger.info(`测试1`)
       if (poolOpenTime > runTimestamp && !existing) {
         existingLiquidityPools.add(key);
         const qvault = await solanaConnection.getBalance(poolState.quoteVault)
@@ -466,7 +464,6 @@ const runListener = async () => {
         logger.info(`监听到新的流动池，`+ poolState.baseMint.toBase58())
         logger.info(`池子大小`+ solAmount + 'sol')
         await processRaydiumPool(updatedAccountInfo.accountId, poolState);
-        logger.info(`测试3`)
       }
     },
     COMMITMENT_LEVEL,
@@ -516,7 +513,6 @@ const runListener = async () => {
   );
 
   if (AUTO_SELL) {
-    logger.info(`每次都执行自动卖？`)
     const walletSubscriptionId = solanaConnection.onProgramAccountChange(
       TOKEN_PROGRAM_ID,
       async (updatedAccountInfo) => {
